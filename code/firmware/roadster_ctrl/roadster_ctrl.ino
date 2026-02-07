@@ -1,6 +1,7 @@
 #include "SteeringModule.h"
 #include "DriveModule.h"
 #include "SerialCommander.h"
+#include "BleCommander.h"
 
 // Hardware Configuration
 const int PIN_SERVO = 10;
@@ -17,7 +18,10 @@ const int PIN_MOTOR_RIGHT_B = 7;
 SteeringModule steering(PIN_SERVO);
 DriveModule driveLeft(PIN_MOTOR_LEFT_A, PIN_MOTOR_LEFT_B);
 DriveModule driveRight(PIN_MOTOR_RIGHT_A, PIN_MOTOR_RIGHT_B);
-SerialCommander commander(steering, driveLeft, driveRight);
+
+// Control Interfaces
+SerialCommander serialCmd(steering, driveLeft, driveRight);
+BleCommander bleCmd(steering, driveLeft, driveRight);
 
 void setup() {
   // Initialize Modules
@@ -25,10 +29,17 @@ void setup() {
   driveLeft.begin();
   driveRight.begin();
   
-  // Initialize Commander
-  commander.begin(115200);
+  // Correct for wiring: Left motor is physically reversed relative to Right
+  driveLeft.setInverted(true);
+  
+  // Initialize Serial Commander
+  serialCmd.begin(115200);
+
+  // Initialize BLE Commander
+  bleCmd.begin("Roadster_ESP32");
 }
 
 void loop() {
-  commander.update();
+  serialCmd.update();
+  bleCmd.update();
 }
