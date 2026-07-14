@@ -1,0 +1,7 @@
+# opencode
+opencode.json
+opencode.jsonc
+.opencode/
+
+# macOS
+.DS_Store
