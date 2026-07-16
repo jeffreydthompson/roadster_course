@@ -3,5 +3,8 @@ opencode.json
 opencode.jsonc
 .opencode/
 
+# Blender backups
+mechanical/roadster.blend1
+
 # macOS
 .DS_Store
