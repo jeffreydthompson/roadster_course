@@ -8,3 +8,7 @@ mechanical/roadster.blend1
 
 # macOS
 .DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
