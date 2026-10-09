@@ -9,7 +9,7 @@ An open source remote control car — mechanical designs, circuit schematics, fi
 The Open Roadster is a fully open source RC car project covering every layer of the build:
 
 - **Mechanical** — 3D-printable chassis and drivetrain in FreeCAD, body designed in Blender
-- **Circuit** — Wiring and component schematics
+- **Circuit** — custom 4-layer controller PCB designed in EasyEDA
 - **Firmware** — ESP32-S3 motor, steering, and battery monitoring over Bluetooth LE
 - **Software** — iOS remote control app (BLE)
 
@@ -31,7 +31,10 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 │       ├── esp-flash.sh            # compile/upload helper (arduino-cli)
 │       ├── roadster_ctrl/          # main car firmware
 │       └── servo/                  # early servo + motor bench test sketch
-└── circuits/                       # (coming soon)
+└── circuits/
+    ├── RCcar_schematic.pdf         # all schematic sheets
+    ├── easyeda/                    # EasyEDA Standard source (schematic + PCB)
+    └── fabrication/                # Gerbers, BOM, pick-and-place for JLCPCB
 ```
 
 ## Hardware
@@ -105,6 +108,30 @@ As a safety failsafe, the motors stop automatically if the Bluetooth connection 
 4. Build and run on your device
 
 On launch the app scans for nearby cars and lists every Open Roadster in range with its signal strength. Tap one to connect. Tap the connection indicator any time to switch cars or disconnect. The app drops back to Park whenever the connection is lost.
+
+### Circuit board
+
+The controller is a 4-layer, 60 × 40 mm board built around an **ESP32-S3-MINI-1-N8**. On board:
+
+| Function | Part |
+|---|---|
+| Microcontroller (Wi-Fi + BLE) | ESP32-S3-MINI-1-N8 |
+| Motor drivers (one per rear wheel) | 2× DRV8833 |
+| Battery charger (single-cell LiPo, via USB-C) | MCP73831 |
+| Fuel gauge | MAX17048 |
+| 3.3 V supply (buck-boost) | TPS63001 |
+| USB / battery power switchover | TPS2116 |
+| USB-to-serial for programming | CP2102N |
+| Connectors | USB-C, battery (PH2.0), 2× motor, servo, front + rear LED |
+
+Files in `circuits/`:
+
+- `RCcar_schematic.pdf` — the full schematic (Sheet 1, Power, Motor Control, LED Drivers, USB Programmer); no software needed
+- `easyeda/` — the original EasyEDA Standard source. In EasyEDA, use **File → Open → EasyEDA Source** to open `RCcar_schematic.json` and `RCcar_pcb.json`
+- `fabrication/RCcar_gerber.zip` — upload this to JLCPCB (or any board house) to order bare boards
+- `fabrication/RCcar_bom.csv` and `RCcar_pick_and_place.csv` — add these for JLCPCB's assembly service; every part has an LCSC part number
+
+The board passes EasyEDA's design rule check with no errors, and all nets are routed.
 
 ### Mechanical
 
