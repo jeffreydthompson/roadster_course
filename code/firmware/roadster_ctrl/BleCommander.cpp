@@ -10,8 +10,11 @@
 #define BATTERY_SERVICE_UUID "180F"
 #define BATTERY_LEVEL_UUID   "2A19"
 
-BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery)
-  : _steering(steering), _driveLeft(driveLeft), _driveRight(driveRight), _battery(battery) {
+// Custom: power source, 1 byte (1 = USB power / charging, 0 = battery)
+#define POWER_SOURCE_UUID    "8FDDF80E-8D10-4B50-9466-FCE56AF3B124"
+
+BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery, LightsModule& lights)
+  : _steering(steering), _driveLeft(driveLeft), _driveRight(driveRight), _battery(battery), _lights(lights) {
   _deviceConnected = false;
   _disconnectPending = false;
   _newLegacyCommand = false;
@@ -19,16 +22,6 @@ BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, Dri
   _newPacketAvailable = false;
   _frontHeadlightOn = false;
   _lastThrottle = 0;
-  _ledPin = -1;
-  _ledState = false;
-}
-
-void BleCommander::setLedPin(int pin) {
-  _ledPin = pin;
-  if (_ledPin >= 0) {
-    pinMode(_ledPin, OUTPUT);
-    digitalWrite(_ledPin, _ledState ? HIGH : LOW);
-  }
 }
 
 void BleCommander::begin(const char* deviceName) {
@@ -61,6 +54,11 @@ void BleCommander::begin(const char* deviceName) {
                               BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
                             );
   _pBatteryCharacteristic->addDescriptor(new BLE2902());
+  _pPowerSourceCharacteristic = pBatService->createCharacteristic(
+                                  POWER_SOURCE_UUID,
+                                  BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+                                );
+  _pPowerSourceCharacteristic->addDescriptor(new BLE2902());
   pBatService->start();
 
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
@@ -114,6 +112,7 @@ void BleCommander::update() {
     _disconnectPending = false;
     _driveLeft.setSpeed(0);
     _driveRight.setSpeed(0);
+    _lights.setThrottle(0);
     Serial.println("Failsafe: motors stopped");
     return;
   }
@@ -134,7 +133,8 @@ void BleCommander::update() {
 void BleCommander::processPacket(ControlPacket packet) {
   _lastThrottle = packet.throttle;
   _frontHeadlightOn = packet.headlight > 0;
-  setLedState(_frontHeadlightOn);
+  _lights.setHeadlights(_frontHeadlightOn);
+  _lights.setThrottle(packet.throttle);
 
   _driveLeft.setSpeed(packet.throttle);
   _driveRight.setSpeed(packet.throttle);
@@ -194,16 +194,13 @@ void BleCommander::processLegacyCommand(char cmd) {
   }
 }
 
-void BleCommander::setLedState(bool on) {
-  _ledState = on;
-  if (_ledPin >= 0) {
-    digitalWrite(_ledPin, _ledState ? HIGH : LOW);
-  }
-}
-
 void BleCommander::updateBatteryLevel() {
   float pct = _battery.getPercent();
   uint8_t level = (uint8_t)constrain((int)pct, 0, 100);
   _pBatteryCharacteristic->setValue(&level, 1);
   _pBatteryCharacteristic->notify();
+
+  uint8_t onUsb = _battery.isOnUsbPower() ? 1 : 0;
+  _pPowerSourceCharacteristic->setValue(&onUsb, 1);
+  _pPowerSourceCharacteristic->notify();
 }

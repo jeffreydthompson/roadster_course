@@ -9,6 +9,7 @@
 #include "SteeringModule.h"
 #include "DriveModule.h"
 #include "BatteryModule.h"
+#include "LightsModule.h"
 
 // Binary Packet Structure (Matches App)
 #pragma pack(1)
@@ -21,10 +22,9 @@ struct ControlPacket {
 
 class BleCommander : public BLEServerCallbacks, public BLECharacteristicCallbacks {
   public:
-    BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery);
+    BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery, LightsModule& lights);
     void begin(const char* deviceName);
     void update();
-    void setLedPin(int pin);
 
     // BLE Server Callbacks
     void onConnect(BLEServer* pServer) override;
@@ -38,10 +38,12 @@ class BleCommander : public BLEServerCallbacks, public BLECharacteristicCallback
     DriveModule& _driveLeft;
     DriveModule& _driveRight;
     BatteryModule& _battery;
+    LightsModule& _lights;
     
     BLEServer* _pServer;
     BLECharacteristic* _pTxCharacteristic;
     BLECharacteristic* _pBatteryCharacteristic;
+    BLECharacteristic* _pPowerSourceCharacteristic;
     // Written from the BLE task, read from loop()
     volatile bool _deviceConnected;
     volatile bool _disconnectPending;
@@ -52,13 +54,10 @@ class BleCommander : public BLEServerCallbacks, public BLECharacteristicCallback
     volatile bool _newPacketAvailable;
     bool _frontHeadlightOn;
     int _lastThrottle;
-    int _ledPin;
-    bool _ledState;
 
     void processLegacyCommand(char cmd);
     void processPacket(ControlPacket packet);
     void updateBatteryLevel();
-    void setLedState(bool on);
 };
 
 #endif

@@ -48,7 +48,9 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 | Left drive motor | DRV8833 on GPIO 6 / 5 (sleep 11, fault 7) |
 | Right drive motor | DRV8833 on GPIO 39 / 40 (sleep 38, fault 34) |
 | Fuel gauge | MAX17048 over I2C (SDA 8, SCL 9) |
-| Status / headlight LED | GPIO 42 |
+| Front light (headlights, `F.LED`) | GPIO 42, PWM |
+| Rear light (tail / brake, `B.LED`) | GPIO 41, PWM |
+| Power source (TPS2116 `ST`) | GPIO 26 — HIGH on USB power, LOW on battery |
 
 All pins are defined at the top of `code/firmware/roadster_ctrl/roadster_ctrl.ino`. Motor direction is corrected in software with `setInverted(true)` in the same file — if a wheel spins the wrong way, that's the line to change.
 
@@ -80,6 +82,7 @@ The car advertises over Bluetooth LE as `Open Roadster` and exposes two services
 | ↳ TX (notify) | `6E400003-B5A3-F393-E0A9-E50E24DCCA9E` | Feedback for single-character commands |
 | Battery | `180F` | Standard Bluetooth battery service |
 | ↳ Battery Level | `2A19` | 0–100 %, from the MAX17048 |
+| ↳ Power Source | `8FDDF80E-8D10-4B50-9466-FCE56AF3B124` | 1 = on USB power (battery charging), 0 = on battery; notifies on change |
 
 **Control packet** (what the iOS app sends) — 5 bytes, little-endian:
 
@@ -101,6 +104,8 @@ The car advertises over Bluetooth LE as `Open Roadster` and exposes two services
 The same commands work over USB serial (115200 baud) when `ENABLE_SERIAL` is set to `true` in `roadster_ctrl.ino` (it is off by default).
 
 As a safety failsafe, the motors stop automatically if the Bluetooth connection drops.
+
+**Lights:** the headlight flag in the control packet turns on the front light, and the rear light glows as a tail light. The rear light goes to full brightness as a brake light when the throttle is released or drops sharply (held for 0.8 s), and stays on while reversing. Brightness levels and timing are constants at the top of `LightsModule.h`.
 
 ### iOS App
 

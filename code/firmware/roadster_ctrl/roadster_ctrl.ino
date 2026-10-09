@@ -1,6 +1,7 @@
 #include "SteeringModule.h"
 #include "DriveModule.h"
 #include "BatteryModule.h"
+#include "LightsModule.h"
 #include "SerialCommander.h"
 #include "BleCommander.h"
 
@@ -25,8 +26,12 @@ const int PIN_R_FAULT = 34;
 const int PIN_I2C_SDA = 8;
 const int PIN_I2C_SCL = 9;
 
-// Status LED
-const int PIN_WLED = 42;
+// Power status: TPS2116 ST output (HIGH = USB power, LOW = battery)
+const int PIN_POWER_ST = 26;
+
+// Lights (F.LED and B.LED connectors)
+const int PIN_WLED = 42; // front / headlights
+const int PIN_RLED = 41; // rear / tail + brake
 
 const bool ENABLE_SERIAL = false;
 const bool ENABLE_STEERING = true;
@@ -36,15 +41,16 @@ const bool ENABLE_DRIVE = true;
 SteeringModule steering(PIN_SERVO);
 DriveModule driveLeft(PIN_MOTOR_LEFT_A, PIN_MOTOR_LEFT_B, PIN_L_SLEEP, PIN_L_FAULT);
 DriveModule driveRight(PIN_MOTOR_RIGHT_A, PIN_MOTOR_RIGHT_B, PIN_R_SLEEP, PIN_R_FAULT);
-BatteryModule battery(PIN_I2C_SDA, PIN_I2C_SCL);
+BatteryModule battery(PIN_I2C_SDA, PIN_I2C_SCL, PIN_POWER_ST);
+LightsModule lights(PIN_WLED, PIN_RLED);
 
 // Control Interfaces
 SerialCommander serialCmd(steering, driveLeft, driveRight);
-BleCommander bleCmd(steering, driveLeft, driveRight, battery);
+BleCommander bleCmd(steering, driveLeft, driveRight, battery, lights);
 
 void setup() {
   // Initialize Modules
-  bleCmd.setLedPin(PIN_WLED);
+  lights.begin();
 
   if (ENABLE_STEERING) {
     steering.begin();
@@ -79,4 +85,5 @@ void loop() {
   bleCmd.update();
 
   battery.update();
+  lights.update();
 }
