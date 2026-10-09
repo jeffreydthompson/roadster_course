@@ -33,8 +33,10 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 │       └── servo/                  # early servo + motor bench test sketch
 └── circuits/
     ├── RCcar_schematic.pdf         # all schematic sheets
-    ├── easyeda/                    # EasyEDA Standard source (schematic + PCB)
+    ├── kicad/                      # KiCad 10 project (schematic + PCB), ported from EasyEDA
+    ├── easyeda/                    # original EasyEDA Standard source (schematic + PCB)
     └── fabrication/                # Gerbers, BOM, pick-and-place for JLCPCB
+        └── kicad/                  # the same, generated from the KiCad project
 ```
 
 ## Hardware
@@ -127,11 +129,26 @@ The controller is a 4-layer, 60 × 40 mm board built around an **ESP32-S3-MINI-1
 Files in `circuits/`:
 
 - `RCcar_schematic.pdf` — the full schematic (Sheet 1, Power, Motor Control, LED Drivers, USB Programmer); no software needed
+- `kicad/` — the full design as a [KiCad](https://www.kicad.org/) 10 project; open `RCcar.kicad_pro` (see notes below)
 - `easyeda/` — the original EasyEDA Standard source. In EasyEDA, use **File → Open → EasyEDA Source** to open `RCcar_schematic.json` and `RCcar_pcb.json`
-- `fabrication/RCcar_gerber.zip` — upload this to JLCPCB (or any board house) to order bare boards
-- `fabrication/RCcar_bom.csv` and `RCcar_pick_and_place.csv` — add these for JLCPCB's assembly service; every part has an LCSC part number
+- `fabrication/` — order files exported from EasyEDA: `RCcar_gerber.zip`, `RCcar_bom.csv`, `RCcar_pick_and_place.csv`
+- `fabrication/kicad/` — the same set generated from the KiCad project, in JLCPCB's format: `RCcar_kicad_gerber.zip`, `RCcar_bom_jlcpcb.csv`, `RCcar_cpl_jlcpcb.csv`
 
 The board passes EasyEDA's design rule check with no errors, and all nets are routed.
+
+**About the KiCad port.** The KiCad project was imported from the EasyEDA source and checked against it:
+
+- Schematic and board agree on every connection (KiCad's schematic parity check finds no split or merged nets; remaining parity notes are naming differences from the import).
+- Design rules match EasyEDA's (0.152 mm minimum clearance, 0.254 mm tracks); DRC reports no clearance errors and no unconnected items.
+- KiCad fills copper pours slightly differently from EasyEDA, so 14 short tracks (0.2 mm) were added where KiCad's fill couldn't reach a few fine-pitch pins that EasyEDA's pour connected (around U1, U3, U5, U6, U7 and R2).
+- KiCad's Gerbers match EasyEDA's copper to within about 1% per layer; the differences are pour edges and thermal spokes around pads.
+- The project is self-contained: all symbols and footprints live in project libraries (`RCcar.kicad_sym`, `RCcar.pretty/`), registered in the project's `sym-lib-table` and `fp-lib-table`.
+- Remaining DRC/ERC items are left visible on purpose. They are cosmetic or come from the import: courtyard overlaps from the tight placement, EasyEDA silkscreen touching pads, footprints that differ from their library copy by rounding or 3D model, and EasyEDA symbols whose pin types trigger "not driven" and pin-type warnings.
+- 3D models aren't included yet; the 3D viewer will show bare footprints.
+
+**Ordering from JLCPCB.** Upload the Gerber zip for bare boards (4 layers, 60 × 40 mm). For assembly, add the BOM and CPL (pick-and-place) files; every part has an LCSC part number. Parts are on both sides, so choose two-sided assembly. Always check part rotations in JLCPCB's assembly preview before paying.
+
+The KiCad order files were checked against the EasyEDA ones: the same 91 parts with the same LCSC numbers, identical positions, sides and rotations, and copper within about 1% per layer (pour edges). KiCad also opens the solder mask around the bare mounting and locating holes. The EasyEDA set is what the original boards were made from; the KiCad set is the one to use once you change the design.
 
 ### Mechanical
 
