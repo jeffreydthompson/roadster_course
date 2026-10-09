@@ -8,7 +8,7 @@ An open source remote control car — mechanical designs, circuit schematics, fi
 
 The Open Roadster is a fully open source RC car project covering every layer of the build:
 
-- **Mechanical** — 3D-printable body and chassis designed in Blender
+- **Mechanical** — 3D-printable chassis and drivetrain in FreeCAD, body designed in Blender
 - **Circuit** — Wiring and component schematics
 - **Firmware** — ESP32-S3 motor, steering, and battery monitoring over Bluetooth LE
 - **Software** — iOS remote control app (BLE)
@@ -17,7 +17,12 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 
 ```
 ├── mechanical/
-│   ├── roadster.blend              # Blender source file
+│   ├── freecad/
+│   │   ├── OpenRoadster.FCStd      # full chassis assembly, parts in position
+│   │   ├── Printed Parts/          # one file per 3D-printed part
+│   │   ├── Sheet Metal Parts/      # chassis base: model, flat-pattern DXF, bent STEP
+│   │   └── Purchased Parts/        # motors, servo, bearing, screws, PCB
+│   ├── roadster.blend              # Blender body model
 │   ├── open roadster blueprint.png
 │   └── blueprints/                 # front, back, side, top views
 ├── code/
@@ -103,9 +108,29 @@ On launch the app scans for nearby cars and lists every Open Roadster in range w
 
 ### Mechanical
 
-1. Open `mechanical/roadster.blend` in [Blender](https://www.blender.org/)
-2. Export STL files for 3D printing
-3. Refer to the blueprints for assembly dimensions
+**Chassis, steering, and wheels** are in [FreeCAD](https://www.freecad.org/) (1.0 or newer) under `mechanical/freecad/`:
+
+- `OpenRoadster.FCStd` — the complete chassis assembly with every part in position
+- `Printed Parts/` — one file per printed part; select the body and use **File → Export** to get an STL for your slicer
+- `Sheet Metal Parts/` — the chassis base, made by a sheet metal shop rather than printed (see below)
+- `Purchased Parts/` — models of the off-the-shelf components, for fit checks
+
+| Purchased part | Qty |
+|---|---|
+| N20 DC gear motor (`or.n20.dc.motor`) | 2 |
+| D1802MG micro servo (`or.d1802mg.servo`) | 1 |
+| Front wheel bearing (`or.bearing.front`) | 2 |
+| Hub screw (`or.hubscrew`) | 4 |
+| Controller PCB (`PCB`) | 1 |
+
+**Sheet metal chassis base** (`or.sheetmetal.base`) — 0.8 mm steel, flat blank 100.6 × 167.0 mm, 9 bends. Send a fabrication service (SendCutSend, OSH Cut, JLCCNC, etc.) both files:
+
+- `or.sheetmetal.base.flat.dxf` — flat pattern in mm; outline and holes on layer `CUT`, bend lines on layer `BEND`
+- `or.sheetmetal.base.step` — the bent part, so the shop can confirm bend directions and angles
+
+The parts were converted from the original Onshape model as solid bodies, so they don't carry the parametric feature history. They can be measured, modified, and re-exported, but not edited by changing the original sketches.
+
+**Body:** open `mechanical/roadster.blend` in [Blender](https://www.blender.org/) and export STL files for printing. Refer to the blueprints for assembly dimensions.
 
 ## License
 
