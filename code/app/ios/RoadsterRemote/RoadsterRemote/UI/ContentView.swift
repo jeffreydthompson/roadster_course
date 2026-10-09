@@ -22,7 +22,7 @@ struct ContentView: View {
                 GearView(gear: $controller.gear)
                 
                 VStack {
-                    FuelGaugeView(batteryLevel: controller.batteryLevel)
+                    FuelGaugeView(batteryLevel: controller.batteryLevel, isCharging: controller.isOnUsbPower)
                     
                     HStack {
                         HeadlightControlView(isOn: $controller.headlight)

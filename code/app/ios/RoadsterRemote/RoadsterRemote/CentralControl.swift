@@ -27,6 +27,7 @@ public class CentralControl {
     }
     
     var batteryLevel: UInt8 = 0
+    var isOnUsbPower: Bool = false
     var connectionState: ConnectionState = .disconnected
     var cars: [DiscoveredCar] = []
     var bluetoothState: CBManagerState = .unknown
@@ -57,6 +58,13 @@ public class CentralControl {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] battery in
                 self?.batteryLevel = battery
+            }
+            .store(in: &subscribers)
+        
+        self.bleController.onUsbPower
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] onUsb in
+                self?.isOnUsbPower = onUsb
             }
             .store(in: &subscribers)
         

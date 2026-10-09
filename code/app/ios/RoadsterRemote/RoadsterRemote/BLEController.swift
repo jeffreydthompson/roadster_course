@@ -14,6 +14,8 @@ fileprivate let TX_UUID = CBUUID.init(string: "6E400003-B5A3-F393-E0A9-E50E24DCC
 
 fileprivate let BATTERY_SERVICE_UUID = CBUUID.init(string: "180F")
 fileprivate let BATTERY_LEVEL_CHARACTERISTIC_UUID = CBUUID.init(string: "2A19")
+// Custom: 1 = car is on USB power (battery charging), 0 = on battery
+fileprivate let POWER_SOURCE_CHARACTERISTIC_UUID = CBUUID.init(string: "8FDDF80E-8D10-4B50-9466-FCE56AF3B124")
 
 // A car that drops out of scan results for this long is removed from the list
 fileprivate let STALE_CAR_TIMEOUT: TimeInterval = 5
@@ -83,6 +85,7 @@ class BLEController: NSObject {
     var cars = CurrentValueSubject<[DiscoveredCar], Never>([])
     var bluetoothState = CurrentValueSubject<CBManagerState, Never>(.unknown)
     var batteryLevel = PassthroughSubject<UInt8, Never>()
+    var onUsbPower = CurrentValueSubject<Bool, Never>(false)
 
     var commandChar : CBCharacteristic?
     var subscribeChar: CBCharacteristic?
@@ -169,6 +172,7 @@ class BLEController: NSObject {
         commandChar = nil
         subscribeChar = nil
         connectionState.send(.disconnected)
+        onUsbPower.send(false)
     }
 
     func send(command: BLECommand) {
@@ -255,9 +259,9 @@ extension BLEController: CBPeripheralDelegate {
         if service.uuid == BATTERY_SERVICE_UUID {
             for c in service.characteristics ?? [] {
 
-                if c.uuid == BATTERY_LEVEL_CHARACTERISTIC_UUID {
+                // Show the values right away instead of waiting for the next notify
+                if c.uuid == BATTERY_LEVEL_CHARACTERISTIC_UUID || c.uuid == POWER_SOURCE_CHARACTERISTIC_UUID {
                     peripheral.setNotifyValue(true, for: c)
-                    // Show the level right away instead of waiting for the next notify
                     peripheral.readValue(for: c)
                 }
             }
@@ -270,7 +274,7 @@ extension BLEController: CBPeripheralDelegate {
 
             for s in peripheral.services ?? [] {
                 if s.uuid == BATTERY_SERVICE_UUID {
-                    peripheral.discoverCharacteristics([BATTERY_LEVEL_CHARACTERISTIC_UUID], for: s)
+                    peripheral.discoverCharacteristics([BATTERY_LEVEL_CHARACTERISTIC_UUID, POWER_SOURCE_CHARACTERISTIC_UUID], for: s)
                 }
 
                 if s.uuid == SERVICE_UUID {
@@ -285,6 +289,10 @@ extension BLEController: CBPeripheralDelegate {
             let data = characteristic.value
             let battery = data?.first ?? 0
             batteryLevel.send(battery)
+        }
+        
+        if characteristic.uuid == POWER_SOURCE_CHARACTERISTIC_UUID {
+            onUsbPower.send(characteristic.value?.first == 1)
         }
     }
 }

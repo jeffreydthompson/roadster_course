@@ -10,6 +10,7 @@ import SwiftUI
 struct FuelGaugeView: View {
     
     let batteryLevel: UInt8
+    var isCharging: Bool = false
     
     var body: some View {
         
@@ -62,6 +63,13 @@ struct FuelGaugeView: View {
                     .stroke(lineWidth: lineWeight)
                     .fill(gaugeColor())
                     .offset(x: 0, y: yOffset)
+                if isCharging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: fontSize))
+                        .foregroundStyle(Color.yellow)
+                        .offset(offsetByPercentage(geo, xP: 0, yP: 0.27))
+                        .accessibilityLabel("Charging")
+                }
             }
         }
     }
@@ -124,5 +132,6 @@ fileprivate struct Arc: Shape {
 #Preview {
     VStack {
         FuelGaugeView(batteryLevel: 14)
+        FuelGaugeView(batteryLevel: 60, isCharging: true)
     }
 }
