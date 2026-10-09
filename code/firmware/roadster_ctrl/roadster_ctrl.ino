@@ -50,11 +50,14 @@ BleCommander bleCmd(steering, driveLeft, driveRight, battery, lights);
 
 void setup() {
   // Initialize Modules
-  lights.begin();
-
+  // Steering must attach first: ESP32Servo claims LEDC channel 0 directly,
+  // and analogWrite() would otherwise have handed that channel to the lights,
+  // leaving the servo and headlights sharing one PWM signal.
   if (ENABLE_STEERING) {
     steering.begin();
   }
+
+  lights.begin();
 
   if (ENABLE_DRIVE) {
     driveLeft.begin();
