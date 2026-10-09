@@ -6,8 +6,9 @@ SerialCommander::SerialCommander(SteeringModule& steering, DriveModule& driveLef
 
 void SerialCommander::begin(long baudRate) {
   Serial.begin(baudRate);
-  while (!Serial) {
-    ; // Wait for serial port to connect
+  unsigned long start = millis();
+  while (!Serial && (millis() - start) < 1500) {
+    delay(10);
   }
   Serial.println("Roadster Controller Ready.");
   Serial.println("Commands: f=Forward, b=Back (25%), s=Stop, l=Left, r=Right, c=Center");

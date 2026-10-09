@@ -1,11 +1,12 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 # Compile and upload Arduino sketches to the ESP32 using arduino-cli
 
 # CONFIG
-BOARD_FQBN="esp32:esp32:esp32c3"
+BOARD_FQBN="esp32:esp32:esp32s3"
 
-if ! command arduino-cli &> /dev/null; then
+if ! command -v arduino-cli &> /dev/null; then
   echo "Error: arduino-cli not found.  Please install it first."
+  exit 1
 fi
 
 # FUNCTIONS
@@ -14,8 +15,8 @@ usage() {
   echo "  compile: Compile the sketch"
   echo "  upload: Upload the sketch to ESP32 (requires port)"
   echo "Example:"
-  echo "  $0 compile blink"
-  echo "  $0 upload blink /dev/ttyUSB0"
+  echo "  $0 compile roadster_ctrl"
+  echo "  $0 upload roadster_ctrl /dev/cu.usbmodem1101"
 }
 
 compile_sketch() {

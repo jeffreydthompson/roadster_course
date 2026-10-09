@@ -1,15 +1,34 @@
 #include "BleCommander.h"
+#include <cstring>
 
 // Nordic UART Service UUIDs
 #define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
-BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight)
-  : _steering(steering), _driveLeft(driveLeft), _driveRight(driveRight) {
+// Battery Service UUIDs (Standard Bluetooth SIG)
+#define BATTERY_SERVICE_UUID "180F"
+#define BATTERY_LEVEL_UUID   "2A19"
+
+BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery)
+  : _steering(steering), _driveLeft(driveLeft), _driveRight(driveRight), _battery(battery) {
   _deviceConnected = false;
-  _newCommandAvailable = false;
-  _lastCommand = 0;
+  _disconnectPending = false;
+  _newLegacyCommand = false;
+  _lastLegacyCommand = 0;
+  _newPacketAvailable = false;
+  _frontHeadlightOn = false;
+  _lastThrottle = 0;
+  _ledPin = -1;
+  _ledState = false;
+}
+
+void BleCommander::setLedPin(int pin) {
+  _ledPin = pin;
+  if (_ledPin >= 0) {
+    pinMode(_ledPin, OUTPUT);
+    digitalWrite(_ledPin, _ledState ? HIGH : LOW);
+  }
 }
 
 void BleCommander::begin(const char* deviceName) {
@@ -34,12 +53,22 @@ void BleCommander::begin(const char* deviceName) {
   pRxCharacteristic->setCallbacks(this);
 
   pService->start();
-  
+
+  // Battery Service
+  BLEService* pBatService = _pServer->createService(BATTERY_SERVICE_UUID);
+  _pBatteryCharacteristic = pBatService->createCharacteristic(
+                              BATTERY_LEVEL_UUID,
+                              BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+                            );
+  _pBatteryCharacteristic->addDescriptor(new BLE2902());
+  pBatService->start();
+
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->addServiceUUID(BATTERY_SERVICE_UUID);
   pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06); 
-  pAdvertising->setMinPreferred(0x12);
+  pAdvertising->setMinPreferred(0x06); // helps with iPhone connection issues
+  pAdvertising->setMaxPreferred(0x12);
   BLEDevice::startAdvertising();
   
   Serial.println("BLE Commander Initialized. Waiting for client connection...");
@@ -52,29 +81,71 @@ void BleCommander::onConnect(BLEServer* pServer) {
 
 void BleCommander::onDisconnect(BLEServer* pServer) {
   _deviceConnected = false;
+  _disconnectPending = true; // failsafe: stop the motors in update()
   Serial.println("BLE Client Disconnected");
   // Restart advertising so others can connect
   BLEDevice::startAdvertising();
 }
 
 void BleCommander::onWrite(BLECharacteristic* pCharacteristic) {
-  String rxValue = pCharacteristic->getValue();
+  uint8_t* data = pCharacteristic->getData();
+  size_t len = pCharacteristic->getLength();
 
-  if (rxValue.length() > 0) {
-    // Only process the first character for now
-    _lastCommand = rxValue[0];
-    _newCommandAvailable = true;
+  if (len == sizeof(ControlPacket)) {
+    memcpy(&_lastPacket, data, sizeof(ControlPacket));
+    _newPacketAvailable = true;
+  } else if (len == 4) {
+    memset(&_lastPacket, 0, sizeof(ControlPacket));
+    memcpy(&_lastPacket, data, len);
+    _lastPacket.headlight = 0;
+    _newPacketAvailable = true;
+  } else if (len == 1) {
+    _lastLegacyCommand = (char)data[0];
+    _newLegacyCommand = true;
   }
 }
 
 void BleCommander::update() {
-  if (_newCommandAvailable) {
-    processCommand(_lastCommand);
-    _newCommandAvailable = false;
+  if (_disconnectPending) {
+    // Lost the controller - drop anything still queued so the car
+    // can't drive off on a stale packet, then stop.
+    _newPacketAvailable = false;
+    _newLegacyCommand = false;
+    _disconnectPending = false;
+    _driveLeft.setSpeed(0);
+    _driveRight.setSpeed(0);
+    Serial.println("Failsafe: motors stopped");
+    return;
+  }
+
+  if (_newPacketAvailable) {
+    processPacket(_lastPacket);
+    _newPacketAvailable = false;
+  } else if (_newLegacyCommand) {
+    processLegacyCommand(_lastLegacyCommand);
+    _newLegacyCommand = false;
+  }
+
+  if (_deviceConnected && _battery.hasNewData()) {
+    updateBatteryLevel();
   }
 }
 
-void BleCommander::processCommand(char cmd) {
+void BleCommander::processPacket(ControlPacket packet) {
+  _lastThrottle = packet.throttle;
+  _frontHeadlightOn = packet.headlight > 0;
+  setLedState(_frontHeadlightOn);
+
+  _driveLeft.setSpeed(packet.throttle);
+  _driveRight.setSpeed(packet.throttle);
+
+  int servoUsec = map(packet.steering, -100, 100,
+                      SteeringModule::SERVO_USEC_MIN,
+                      SteeringModule::SERVO_USEC_MAX);
+  _steering.setSteering(servoUsec);
+}
+
+void BleCommander::processLegacyCommand(char cmd) {
   // Simple check to send feedback via Notify
   String feedback = "cmd: ";
   feedback += cmd;
@@ -121,4 +192,18 @@ void BleCommander::processCommand(char cmd) {
     _pTxCharacteristic->setValue((uint8_t*)feedback.c_str(), feedback.length());
     _pTxCharacteristic->notify();
   }
+}
+
+void BleCommander::setLedState(bool on) {
+  _ledState = on;
+  if (_ledPin >= 0) {
+    digitalWrite(_ledPin, _ledState ? HIGH : LOW);
+  }
+}
+
+void BleCommander::updateBatteryLevel() {
+  float pct = _battery.getPercent();
+  uint8_t level = (uint8_t)constrain((int)pct, 0, 100);
+  _pBatteryCharacteristic->setValue(&level, 1);
+  _pBatteryCharacteristic->notify();
 }
