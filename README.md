@@ -11,7 +11,7 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 - **Mechanical** — 3D-printable body and chassis designed in Blender
 - **Circuit** — Wiring and component schematics
 - **Firmware** — ESP32-based motor and servo control
-- **Software** — Remote control interface
+- **Software** — iOS remote control app (BLE)
 
 ## Repository Structure
 
@@ -21,6 +21,8 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 │   └── open roadster blueprint.png
 ├── firmware/            # ESP32 firmware
 │   └── servo/           # Servo and motor driver module
+├── code/
+│   └── app/ios/         # iOS remote control app
 └── circuits/            # (coming soon)
 ```
 
@@ -47,6 +49,13 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 1. Open `mechanical/roadster.blend` in [Blender](https://www.blender.org/)
 2. Export STL files for 3D printing
 3. Refer to the blueprint for assembly dimensions
+
+### iOS App
+
+1. Open `code/app/ios/RoadsterRemote/RoadsterRemote.xcodeproj` in Xcode
+2. In the project settings, under **Signing & Capabilities**, select your own **Team** (or create a free Apple Developer account)
+3. Update the **Bundle Identifier** (e.g., `com.yourname.RoadsterRemote`) — the placeholder `com.example.RoadsterRemote` won't work
+4. Build and run on your device
 
 ## License
 
