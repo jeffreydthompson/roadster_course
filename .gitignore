@@ -12,3 +12,12 @@ mechanical/roadster.blend1
 # Xcode
 xcuserdata/
 *.xcuserstate
+
+# KiCad local/cache files
+*.kicad_prl
+*-backups/
+fp-info-cache
+.history/
+*.kicad_sch-bak
+*.kicad_pcb-bak
+~*.lck

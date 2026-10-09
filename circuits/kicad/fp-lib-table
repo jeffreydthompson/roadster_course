@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "RCcar") (type "KiCad") (uri "${KIPRJMOD}/RCcar.pretty") (options "") (descr "Open Roadster footprints (imported from EasyEDA)"))
+)

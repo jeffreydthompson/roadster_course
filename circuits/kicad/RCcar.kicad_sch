@@ -1,0 +1,239 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "ef4b46be-0716-4aed-9c54-1c198f7349e4")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 5.08 40.64)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "3bd249c2-a1ae-42b5-8434-5edd001d7665")
+		(property "Sheetname" "USB Programmer"
+			(at 5.08 39.9284 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "USB Programmer.kicad_sch"
+			(at 5.08 45.0346 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "RCcar"
+				(path "/ef4b46be-0716-4aed-9c54-1c198f7349e4"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 5.08 5.08)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "43a11ae1-5cb3-49fa-9e08-6bc64ae54ac4")
+		(property "Sheetname" "Sheet_1"
+			(at 5.08 4.3684 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Sheet_1.kicad_sch"
+			(at 5.08 9.4746 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "RCcar"
+				(path "/ef4b46be-0716-4aed-9c54-1c198f7349e4"
+					(page "1")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 5.08 13.97)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "a5abccbb-4a1d-4d74-8065-79910d3ac053")
+		(property "Sheetname" "Power"
+			(at 5.08 13.2584 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Power.kicad_sch"
+			(at 5.08 18.3646 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "RCcar"
+				(path "/ef4b46be-0716-4aed-9c54-1c198f7349e4"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 5.08 22.86)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "b10609ba-7c11-4029-a5b0-799c79c1da84")
+		(property "Sheetname" "Motor Control"
+			(at 5.08 22.1484 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Motor Control.kicad_sch"
+			(at 5.08 27.2546 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "RCcar"
+				(path "/ef4b46be-0716-4aed-9c54-1c198f7349e4"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 5.08 31.75)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "d7a5a4c6-b8bd-47be-b440-d42e169f633b")
+		(property "Sheetname" "LED Drivers"
+			(at 5.08 31.0384 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "LED Drivers.kicad_sch"
+			(at 5.08 36.1446 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "RCcar"
+				(path "/ef4b46be-0716-4aed-9c54-1c198f7349e4"
+					(page "4")
+				)
+			)
+		)
+	)
+	(embedded_fonts no)
+)

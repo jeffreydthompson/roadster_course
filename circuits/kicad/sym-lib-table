@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "RCcar") (type "KiCad") (uri "${KIPRJMOD}/RCcar.kicad_sym") (options "") (descr "Open Roadster symbols (imported from EasyEDA)"))
+)
