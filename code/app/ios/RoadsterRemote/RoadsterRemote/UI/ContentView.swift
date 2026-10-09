@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     
     @State var controller = CentralControl()
+    @State private var showingCarPicker = true
     
     let grad: LinearGradient = .init(gradient: .init(colors: [.init(white: 0.2), .init(white: 0.4)]), startPoint: .bottom, endPoint: .top)
     
@@ -26,8 +27,13 @@ struct ContentView: View {
                     HStack {
                         HeadlightControlView(isOn: $controller.headlight)
                             .padding()
-                        ConnectionView(connected: controller.isConnected)
-                            .padding()
+                        Button {
+                            showingCarPicker = true
+                        } label: {
+                            ConnectionView(connected: controller.isConnected)
+                        }
+                        .accessibilityLabel(controller.isConnected ? "Connected. Change car" : "Not connected. Select car")
+                        .padding()
                     }
                     .padding(15)
                 }
@@ -39,6 +45,9 @@ struct ContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 25))
             }
             .padding(15)
+        }
+        .sheet(isPresented: $showingCarPicker) {
+            CarPickerView(controller: controller)
         }
         /*ZStack {
             grad

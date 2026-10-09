@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import CoreBluetooth
 
 enum Gear {
     case park, reverse, drive
@@ -26,7 +27,15 @@ public class CentralControl {
     }
     
     var batteryLevel: UInt8 = 0
-    var isConnected: Bool = false
+    var connectionState: ConnectionState = .disconnected
+    var cars: [DiscoveredCar] = []
+    var bluetoothState: CBManagerState = .unknown
+    
+    var isConnected: Bool {
+        if case .connected = connectionState { return true }
+        return false
+    }
+    
     var throttle: Int16 = 0
     var steering: Int16 = 0 {
         didSet {
@@ -51,10 +60,28 @@ public class CentralControl {
             }
             .store(in: &subscribers)
         
-        self.bleController.connected
+        self.bleController.connectionState
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] connection in
-                self?.isConnected = connection
+            .sink { [weak self] state in
+                self?.connectionState = state
+                if state == .disconnected {
+                    // Safety: never resume driving on reconnect
+                    self?.gear = .park
+                }
+            }
+            .store(in: &subscribers)
+        
+        self.bleController.cars
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] cars in
+                self?.cars = cars
+            }
+            .store(in: &subscribers)
+        
+        self.bleController.bluetoothState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.bluetoothState = state
             }
             .store(in: &subscribers)
         
@@ -72,6 +99,22 @@ public class CentralControl {
             .store(in: &subscribers)
 
         self.accelerometer.beginUpdates()
+    }
+    
+    func startScan() {
+        bleController.startScan()
+    }
+    
+    func stopScan() {
+        bleController.stopScan()
+    }
+    
+    func connect(to car: DiscoveredCar) {
+        bleController.connect(to: car)
+    }
+    
+    func disconnect() {
+        bleController.disconnect()
     }
     
     func sendCommand() {
