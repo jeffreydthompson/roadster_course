@@ -22,6 +22,7 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 │   │   ├── Printed Parts/          # one file per 3D-printed part
 │   │   ├── Sheet Metal Parts/      # chassis base: model, flat-pattern DXF, bent STEP
 │   │   └── Purchased Parts/        # motors, servo, bearing, screws, PCB
+│   ├── stl/                        # ready-to-print STLs of the printed parts
 │   ├── roadster.blend              # Blender body model
 │   ├── open roadster blueprint.png
 │   └── blueprints/                 # front, back, side, top views
@@ -29,14 +30,13 @@ The Open Roadster is a fully open source RC car project covering every layer of 
 │   ├── app/ios/RoadsterRemote/     # iOS remote control app (SwiftUI + CoreBluetooth)
 │   └── firmware/
 │       ├── esp-flash.sh            # compile/upload helper (arduino-cli)
-│       ├── roadster_ctrl/          # main car firmware
-│       └── servo/                  # early servo + motor bench test sketch
+│       └── roadster_ctrl/          # main car firmware
 └── circuits/
     ├── RCcar_schematic.pdf         # all schematic sheets
     ├── kicad/                      # KiCad 10 project (schematic + PCB), ported from EasyEDA
-    ├── easyeda/                    # original EasyEDA Standard source (schematic + PCB)
-    └── fabrication/                # Gerbers, BOM, pick-and-place for JLCPCB
-        └── kicad/                  # the same, generated from the KiCad project
+    ├── fabrication/                # Gerbers, BOM, pick-and-place for JLCPCB (from KiCad)
+    └── easyeda/                    # original EasyEDA Standard source (schematic + PCB)
+        └── fabrication/            # archived order files exported from EasyEDA
 ```
 
 ## Hardware
@@ -111,7 +111,7 @@ As a safety failsafe, the motors stop automatically if the Bluetooth connection 
 
 1. Open `code/app/ios/RoadsterRemote/RoadsterRemote.xcodeproj` in Xcode
 2. In the project settings, under **Signing & Capabilities**, select your own **Team** (or create a free Apple Developer account)
-3. Update the **Bundle Identifier** (e.g., `com.yourname.RoadsterRemote`) — the placeholder `com.example.RoadsterRemote` won't work
+3. Change the **Bundle Identifier** to one of your own (e.g., `com.yourname.RoadsterRemote`). Bundle IDs are unique per Apple account, so the default `org.openroadster.RoadsterRemote` may already be taken
 4. Build and run on your device
 
 On launch the app scans for nearby cars and lists every Open Roadster in range with its signal strength. Tap one to connect. Tap the connection indicator any time to switch cars or disconnect. The app drops back to Park whenever the connection is lost.
@@ -135,9 +135,9 @@ Files in `circuits/`:
 
 - `RCcar_schematic.pdf` — the full schematic (Sheet 1, Power, Motor Control, LED Drivers, USB Programmer); no software needed
 - `kicad/` — the full design as a [KiCad](https://www.kicad.org/) 10 project; open `RCcar.kicad_pro` (see notes below)
+- `fabrication/` — **the files to order with**, generated from the KiCad project in JLCPCB's format: `RCcar_kicad_gerber.zip`, `RCcar_bom_jlcpcb.csv`, `RCcar_cpl_jlcpcb.csv`
 - `easyeda/` — the original EasyEDA Standard source. In EasyEDA, use **File → Open → EasyEDA Source** to open `RCcar_schematic.json` and `RCcar_pcb.json`
-- `fabrication/` — order files exported from EasyEDA: `RCcar_gerber.zip`, `RCcar_bom.csv`, `RCcar_pick_and_place.csv`
-- `fabrication/kicad/` — the same set generated from the KiCad project, in JLCPCB's format: `RCcar_kicad_gerber.zip`, `RCcar_bom_jlcpcb.csv`, `RCcar_cpl_jlcpcb.csv`
+- `easyeda/fabrication/` — archived order files exported from EasyEDA (`RCcar_gerber.zip`, `RCcar_bom.csv`, `RCcar_pick_and_place.csv`), kept for reference
 
 The board passes EasyEDA's design rule check with no errors, and all nets are routed.
 
@@ -153,14 +153,14 @@ The board passes EasyEDA's design rule check with no errors, and all nets are ro
 
 **Ordering from JLCPCB.** Upload the Gerber zip for bare boards (4 layers, 60 × 40 mm). For assembly, add the BOM and CPL (pick-and-place) files; every part has an LCSC part number. Parts are on both sides, so choose two-sided assembly. Always check part rotations in JLCPCB's assembly preview before paying.
 
-The KiCad order files were checked against the EasyEDA ones: the same 91 parts with the same LCSC numbers, identical positions, sides and rotations, and copper within about 1% per layer (pour edges). KiCad also opens the solder mask around the bare mounting and locating holes. The EasyEDA set is what the original boards were made from; the KiCad set is the one to use once you change the design.
+The KiCad order files were checked against the EasyEDA ones: the same 91 parts with the same LCSC numbers, identical positions, sides and rotations, and copper within about 1% per layer (pour edges). KiCad also opens the solder mask around the bare mounting and locating holes. The EasyEDA set is what the original boards were made from. The KiCad set in `fabrication/` is the one to use; KiCad is now where the design is maintained.
 
 ### Mechanical
 
 **Chassis, steering, and wheels** are in [FreeCAD](https://www.freecad.org/) (1.0 or newer) under `mechanical/freecad/`:
 
 - `OpenRoadster.FCStd` — the complete chassis assembly with every part in position
-- `Printed Parts/` — one file per printed part; select the body and use **File → Export** to get an STL for your slicer
+- `Printed Parts/` — one file per printed part, for editing. Ready-to-print STLs are in `mechanical/stl/` (exported at 0.01 mm tolerance, in mm)
 - `Sheet Metal Parts/` — the chassis base, made by a sheet metal shop rather than printed (see below)
 - `Purchased Parts/` — models of the off-the-shelf components, for fit checks
 
