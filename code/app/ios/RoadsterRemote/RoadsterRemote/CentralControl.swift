@@ -130,12 +130,16 @@ public class CentralControl {
         case .park:
             break
         case .reverse:
-            let rThrottle = -throttle
-            let cmd = BLECommand(throttle: rThrottle, steering: steering, headlight: headlight ? 1 : 0)
+            let cmd = BLECommand(throttle: -motorThrottle, steering: steering, headlight: headlight ? 1 : 0)
             bleController.send(command: cmd)
         case .drive:
-            let cmd = BLECommand(throttle: throttle, steering: steering, headlight: headlight ? 1 : 0)
+            let cmd = BLECommand(throttle: motorThrottle, steering: steering, headlight: headlight ? 1 : 0)
             bleController.send(command: cmd)
         }
+    }
+
+    // The throttle stick runs 0...100; the firmware expects motor PWM, 0...255
+    private var motorThrottle: Int16 {
+        Int16(Int(throttle) * 255 / 100)
     }
 }

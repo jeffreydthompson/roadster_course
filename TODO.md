@@ -16,6 +16,9 @@ A pack left with the power switch on drains until the buck-boost gives up
     so it buys days, not months.
 - [ ] Measure the actual idle current with the switch on (advertising, and in
       deep sleep) to know how long a forgotten car lasts.
+  - Awake and idle: 82 mA at 4 V from the bench supply (2026-10-13). An
+    800 mAh cell goes flat in about 10 hours with the switch left on.
+  - Deep sleep: not measured yet.
 - [ ] Report cell voltage over BLE alongside the percentage, since the
       MAX17048 % is unreliable until it has seen a charge/discharge cycle.
 
@@ -36,8 +39,9 @@ still works with it off.
 
 ## App / firmware
 
-- [ ] Throttle range mismatch: the iOS app sends 0..100 with no reverse,
-      the firmware expects −255..255. App full throttle is only ~40%.
+- [x] Throttle range mismatch: the app's stick ran 0..100 but the firmware
+      expects −255..255, so full throttle was only ~40%. The app now scales
+      the stick to 0..255 (negated in Reverse) when it builds the packet.
 
 ## PCB (KiCad)
 
