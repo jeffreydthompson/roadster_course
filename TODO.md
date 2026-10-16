@@ -24,6 +24,11 @@ A pack left with the power switch on drains until the buck-boost gives up
 
 ### Hardware (Rev 3 board)
 
+- [ ] Soft power switch: a push button turns the car on and the ESP32 holds
+      power on (e.g. a P-FET latch or load switch on the battery line), so
+      firmware can cut the battery off completely after inactivity or at low
+      voltage. This replaces SW2 as the main way the car is
+      turned off, so it can't be left on to drain the cell.
 - [ ] Add a battery protection IC (e.g. DW01A + FS8205A) between the
       BATTERY connector and VBATT, for hardware over-discharge, over-charge
       and short-circuit cutoff.
