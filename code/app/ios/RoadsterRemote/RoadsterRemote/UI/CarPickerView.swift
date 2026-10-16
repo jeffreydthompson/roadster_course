@@ -50,10 +50,14 @@ struct CarPickerView: View {
             )
         } else {
             List {
-                if let car = controller.connectionState.car {
+                switch controller.connectionState {
+                case .connecting(let car), .connected(let car), .disconnecting(let car):
                     Section("Current") {
                         currentCarRow(car)
                     }
+                case .disconnected, .lost:
+                    // A lost car shows up under Nearby again once it's back in range
+                    EmptyView()
                 }
 
                 Section {
@@ -95,6 +99,11 @@ struct CarPickerView: View {
         return false
     }
 
+    private var isDisconnecting: Bool {
+        if case .disconnecting = controller.connectionState { return true }
+        return false
+    }
+
     private func currentCarRow(_ car: DiscoveredCar) -> some View {
         HStack {
             CarRow(car: car, showSignal: false)
@@ -111,6 +120,7 @@ struct CarPickerView: View {
                 controller.disconnect()
             }
             .buttonStyle(.bordered)
+            .disabled(isDisconnecting)
             .padding(.leading, 8)
         }
     }

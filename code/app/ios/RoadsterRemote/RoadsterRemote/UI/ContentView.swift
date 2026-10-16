@@ -8,9 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
-    
+
+    enum Screen {
+        case carPicker
+        case driving
+    }
+
     @State var controller = CentralControl()
-    @State private var showingCarPicker = true
+    @State private var screen: Screen = .carPicker
     
     let grad: LinearGradient = .init(gradient: .init(colors: [.init(white: 0.2), .init(white: 0.4)]), startPoint: .bottom, endPoint: .top)
     
@@ -28,7 +33,7 @@ struct ContentView: View {
                         HeadlightControlView(isOn: $controller.headlight)
                             .padding()
                         Button {
-                            showingCarPicker = true
+                            screen = .carPicker
                         } label: {
                             ConnectionView(connected: controller.isConnected)
                         }
@@ -46,8 +51,14 @@ struct ContentView: View {
             }
             .padding(15)
         }
-        .sheet(isPresented: $showingCarPicker) {
+        .sheet(isPresented: isShowingCarPicker) {
             CarPickerView(controller: controller)
+        }
+        .onChange(of: controller.connectionState) { _, state in
+            // Lost the car mid-drive: go straight back to the search list
+            if case .lost = state {
+                screen = .carPicker
+            }
         }
         /*ZStack {
             grad
@@ -72,6 +83,13 @@ struct ContentView: View {
                     .shadow(radius: 5)
             }
         }*/
+    }
+
+    private var isShowingCarPicker: Binding<Bool> {
+        Binding(
+            get: { screen == .carPicker },
+            set: { screen = $0 ? .carPicker : .driving }
+        )
     }
 }
 

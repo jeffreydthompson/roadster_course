@@ -67,11 +67,16 @@ enum ConnectionState: Equatable {
     case disconnected
     case connecting(DiscoveredCar)
     case connected(DiscoveredCar)
+    /// The user asked to disconnect and it's in progress
+    case disconnecting(DiscoveredCar)
+    /// The connection dropped without the user asking (out of range, car switched off)
+    case lost(DiscoveredCar)
 
+    /// The car the app is linked to, or trying to be
     var car: DiscoveredCar? {
         switch self {
-        case .disconnected: return nil
-        case .connecting(let car), .connected(let car): return car
+        case .disconnected, .lost: return nil
+        case .connecting(let car), .connected(let car), .disconnecting(let car): return car
         }
     }
 }
@@ -164,14 +169,33 @@ class BLEController: NSObject {
 
     func disconnect() {
         guard let peripheral = peripheral else { return }
-        centralManager.cancelPeripheralConnection(peripheral)
+
+        switch connectionState.value {
+        case .connecting:
+            // A pending connection has nothing to tear down, so don't wait for a callback
+            centralManager.cancelPeripheralConnection(peripheral)
+            resetConnection(to: .disconnected)
+        case .connected(let car):
+            connectionState.send(.disconnecting(car))
+            centralManager.cancelPeripheralConnection(peripheral)
+        case .disconnected, .disconnecting, .lost:
+            break
+        }
     }
 
-    private func resetConnection() {
+    /// Where a connection ends up when it closes without being asked to
+    private var droppedState: ConnectionState {
+        switch connectionState.value {
+        case .connected(let car): return .lost(car)
+        default: return .disconnected
+        }
+    }
+
+    private func resetConnection(to state: ConnectionState) {
         peripheral = nil
         commandChar = nil
         subscribeChar = nil
-        connectionState.send(.disconnected)
+        connectionState.send(state)
         onUsbPower.send(false)
     }
 
@@ -198,13 +222,13 @@ extension BLEController: CBCentralManagerDelegate {
             beginScanIfReady()
         default:
             if peripheral != nil {
-                resetConnection()
+                resetConnection(to: droppedState)
             }
         }
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        if let car = connectionState.value.car {
+        if case .connecting(let car) = connectionState.value {
             connectionState.send(.connected(car))
         }
         peripheral.discoverServices([SERVICE_UUID, BATTERY_SERVICE_UUID])
@@ -212,12 +236,12 @@ extension BLEController: CBCentralManagerDelegate {
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
         guard peripheral.identifier == self.peripheral?.identifier else { return }
-        resetConnection()
+        resetConnection(to: .disconnected)
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: (any Error)?) {
         guard peripheral.identifier == self.peripheral?.identifier else { return }
-        resetConnection()
+        resetConnection(to: droppedState)
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {

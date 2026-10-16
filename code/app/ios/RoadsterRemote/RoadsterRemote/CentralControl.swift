@@ -72,10 +72,9 @@ public class CentralControl {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.connectionState = state
-                if state == .disconnected {
-                    // Safety: never resume driving on reconnect
-                    self?.gear = .park
-                }
+                if case .connected = state { return }
+                // Safety: never resume driving on reconnect
+                self?.gear = .park
             }
             .store(in: &subscribers)
         
