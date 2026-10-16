@@ -9,6 +9,9 @@ BatteryModule::BatteryModule(int sda, int scl, int powerStatusPin) {
   _percent = 0.0f;
   _lastReadTime = 0;
   _newDataAvailable = false;
+  _state = BatteryState::Ok;
+  _lowReads = 0;
+  _criticalReads = 0;
 }
 
 void BatteryModule::begin() {
@@ -45,7 +48,49 @@ void BatteryModule::update() {
     _voltage = _lipo.cellVoltage();
     _percent = _lipo.cellPercent();
     _newDataAvailable = true;
+    updateState();
   }
+}
+
+void BatteryModule::updateState() {
+  if (_onUsbPower) {
+    // Charging: nothing to protect
+    _state = BatteryState::Ok;
+    _lowReads = 0;
+    _criticalReads = 0;
+    return;
+  }
+
+  // No gauge, or a bad read: don't shut the car down on a 0 V reading
+  if (_voltage < 1.0f) {
+    return;
+  }
+
+  _lowReads = _voltage <= LOW_VOLTAGE ? _lowReads + 1 : 0;
+  _criticalReads = _voltage <= CUTOFF_VOLTAGE ? _criticalReads + 1 : 0;
+
+  // Only ever step down while on battery. The voltage bounces back when the
+  // motors stop, and that shouldn't clear the warning.
+  BatteryState previous = _state;
+  if (_criticalReads >= CONFIRM_READS) {
+    _state = BatteryState::Critical;
+  } else if (_lowReads >= CONFIRM_READS && _state == BatteryState::Ok) {
+    _state = BatteryState::Low;
+  }
+
+  if (_state != previous) {
+    Serial.printf("Battery %s at %.2f V\n",
+                  _state == BatteryState::Critical ? "critical" : "low", _voltage);
+  }
+}
+
+BatteryState BatteryModule::getState() {
+  return _state;
+}
+
+float BatteryModule::readVoltageNow() {
+  _voltage = _lipo.cellVoltage();
+  return _voltage;
 }
 
 float BatteryModule::getVoltage() {

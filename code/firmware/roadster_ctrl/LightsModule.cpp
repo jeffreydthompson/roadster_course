@@ -6,6 +6,7 @@ LightsModule::LightsModule(int frontPin, int rearPin) {
   _headlights = false;
   _lastThrottle = 0;
   _reversing = false;
+  _lowBattery = false;
   _brakeUntil = 0;
   _rearLevel = -1;
 }
@@ -38,6 +39,24 @@ void LightsModule::setThrottle(int throttle) {
   applyRear();
 }
 
+void LightsModule::setLowBattery(bool on) {
+  _lowBattery = on;
+  applyRear();
+}
+
+void LightsModule::flashWarning(int times) {
+  for (int i = 0; i < times; i++) {
+    analogWrite(_frontPin, FULL_LEVEL);
+    analogWrite(_rearPin, FULL_LEVEL);
+    delay(200);
+    analogWrite(_frontPin, 0);
+    analogWrite(_rearPin, 0);
+    delay(200);
+  }
+  _headlights = false;
+  _rearLevel = 0;
+}
+
 void LightsModule::update() {
   applyRear();
 }
@@ -46,6 +65,8 @@ void LightsModule::applyRear() {
   int level = 0;
   if (_reversing || (long)(_brakeUntil - millis()) > 0) {
     level = FULL_LEVEL;        // brake / reversing
+  } else if (_lowBattery && millis() % LOW_BATTERY_BLINK_MS < LOW_BATTERY_BLINK_MS / 4) {
+    level = FULL_LEVEL;        // low battery warning
   } else if (_headlights) {
     level = TAIL_LEVEL;        // tail light
   }

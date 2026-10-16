@@ -73,7 +73,12 @@ Writing one byte to RX also works. That makes it easy to test with a generic BLE
 
 The same commands work over USB serial (115200 baud) when `ENABLE_SERIAL` is set to `true` in `roadster_ctrl.ino`. It's off by default.
 
-As a safety failsafe, the motors stop automatically if the Bluetooth connection drops.
+RX accepts both write and write-without-response. The app uses write-without-response for lower latency.
+
+**Failsafes:**
+- **Connection lost:** the motors stop if the Bluetooth connection drops.
+- **Packets stop:** controllers must send control packets continuously. The app sends them at 20 Hz, even in Park. If none arrive for 500 ms while the link is still up (for example, the app was suspended), the motors stop. Steering and headlights stay as they were, and the next packet resumes control.
+- **Test commands:** single-character commands aren't covered by the 500 ms timeout. `f` keeps driving until `s` or a disconnect.
 
 ## Lights
 

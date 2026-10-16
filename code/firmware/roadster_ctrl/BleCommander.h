@@ -52,11 +52,17 @@ class BleCommander : public BLEServerCallbacks, public BLECharacteristicCallback
 
     ControlPacket _lastPacket;
     volatile bool _newPacketAvailable;
+    volatile uint32_t _lastPacketMs;
+    // Set while driving from control packets; the watchdog only applies then,
+    // so single-character test commands keep running until told to stop
+    bool _watchdogArmed;
     bool _frontHeadlightOn;
     int _lastThrottle;
 
+    void stopForWatchdog();
     void processLegacyCommand(char cmd);
     void processPacket(ControlPacket packet);
+    int limitThrottle(int throttle);
     void updateBatteryLevel();
 };
 

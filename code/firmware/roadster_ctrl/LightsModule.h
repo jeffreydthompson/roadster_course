@@ -17,6 +17,13 @@ class LightsModule {
     // Feed the current throttle (-255..255) so the rear light can act as a brake light
     void setThrottle(int throttle);
 
+    // Low battery: the rear light blinks (brake and reverse still win)
+    void setLowBattery(bool on);
+
+    // Blocking: flash both lights a few times, then leave them off.
+    // Used just before the low-battery shutdown.
+    void flashWarning(int times = 3);
+
     // Call every loop() to time out the brake light
     void update();
 
@@ -26,6 +33,9 @@ class LightsModule {
 
     // How long the brake light stays on after the throttle is released (ms)
     static const unsigned long BRAKE_HOLD_MS = 800;
+
+    // Low-battery blink: on for a quarter of each period (ms)
+    static const unsigned long LOW_BATTERY_BLINK_MS = 1000;
 
     // Throttle at or below this counts as stopped
     static const int STOP_THRESHOLD = 5;
@@ -39,6 +49,7 @@ class LightsModule {
     bool _headlights;
     int _lastThrottle;
     bool _reversing;
+    bool _lowBattery;
     unsigned long _brakeUntil;
     int _rearLevel;
 

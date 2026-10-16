@@ -13,6 +13,10 @@
 // Custom: power source, 1 byte (1 = USB power / charging, 0 = battery)
 #define POWER_SOURCE_UUID    "8FDDF80E-8D10-4B50-9466-FCE56AF3B124"
 
+// The app sends control packets continuously (20 Hz). If they stop while the
+// link stays up (app suspended or frozen), stop the motors after this long.
+static const uint32_t COMMAND_TIMEOUT_MS = 500;
+
 BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, DriveModule& driveRight, BatteryModule& battery, LightsModule& lights)
   : _steering(steering), _driveLeft(driveLeft), _driveRight(driveRight), _battery(battery), _lights(lights) {
   _deviceConnected = false;
@@ -20,6 +24,8 @@ BleCommander::BleCommander(SteeringModule& steering, DriveModule& driveLeft, Dri
   _newLegacyCommand = false;
   _lastLegacyCommand = 0;
   _newPacketAvailable = false;
+  _lastPacketMs = 0;
+  _watchdogArmed = false;
   _frontHeadlightOn = false;
   _lastThrottle = 0;
 }
@@ -38,10 +44,12 @@ void BleCommander::begin(const char* deviceName) {
                        );
   _pTxCharacteristic->addDescriptor(new BLE2902());
 
-  // Create RX Characteristic (Write)
+  // Create RX Characteristic (Write). Write-without-response keeps control
+  // packets low-latency; plain write still works for generic BLE apps.
   BLECharacteristic* pRxCharacteristic = pService->createCharacteristic(
                                            CHARACTERISTIC_UUID_RX,
-                                           BLECharacteristic::PROPERTY_WRITE
+                                           BLECharacteristic::PROPERTY_WRITE |
+                                           BLECharacteristic::PROPERTY_WRITE_NR
                                          );
   pRxCharacteristic->setCallbacks(this);
 
@@ -91,11 +99,13 @@ void BleCommander::onWrite(BLECharacteristic* pCharacteristic) {
 
   if (len == sizeof(ControlPacket)) {
     memcpy(&_lastPacket, data, sizeof(ControlPacket));
+    _lastPacketMs = millis();
     _newPacketAvailable = true;
   } else if (len == 4) {
     memset(&_lastPacket, 0, sizeof(ControlPacket));
     memcpy(&_lastPacket, data, len);
     _lastPacket.headlight = 0;
+    _lastPacketMs = millis();
     _newPacketAvailable = true;
   } else if (len == 1) {
     _lastLegacyCommand = (char)data[0];
@@ -110,6 +120,7 @@ void BleCommander::update() {
     _newPacketAvailable = false;
     _newLegacyCommand = false;
     _disconnectPending = false;
+    _watchdogArmed = false;
     _driveLeft.setSpeed(0);
     _driveRight.setSpeed(0);
     _lights.setThrottle(0);
@@ -120,9 +131,18 @@ void BleCommander::update() {
   if (_newPacketAvailable) {
     processPacket(_lastPacket);
     _newPacketAvailable = false;
+    _watchdogArmed = true;
   } else if (_newLegacyCommand) {
     processLegacyCommand(_lastLegacyCommand);
     _newLegacyCommand = false;
+    _watchdogArmed = false;
+  } else if (_watchdogArmed) {
+    // Read the packet time before millis(): a packet landing in between
+    // would otherwise make the difference wrap around
+    uint32_t lastPacketMs = _lastPacketMs;
+    if (millis() - lastPacketMs > COMMAND_TIMEOUT_MS) {
+      stopForWatchdog();
+    }
   }
 
   if (_deviceConnected && _battery.hasNewData()) {
@@ -130,7 +150,33 @@ void BleCommander::update() {
   }
 }
 
+// Control packets stopped arriving: stop driving, but leave steering and
+// headlights as they were. The next packet resumes control.
+void BleCommander::stopForWatchdog() {
+  _watchdogArmed = false;
+  _lastThrottle = 0;
+  _driveLeft.setSpeed(0);
+  _driveRight.setSpeed(0);
+  _lights.setThrottle(0);
+  Serial.println("Failsafe: no control packets, motors stopped");
+}
+
+// Throttle cap while the battery is low
+static const int LOW_BATTERY_MAX_THROTTLE = 128;
+
+int BleCommander::limitThrottle(int throttle) {
+  switch (_battery.getState()) {
+    case BatteryState::Critical:
+      return 0;
+    case BatteryState::Low:
+      return constrain(throttle, -LOW_BATTERY_MAX_THROTTLE, LOW_BATTERY_MAX_THROTTLE);
+    default:
+      return throttle;
+  }
+}
+
 void BleCommander::processPacket(ControlPacket packet) {
+  packet.throttle = limitThrottle(packet.throttle);
   _lastThrottle = packet.throttle;
   _frontHeadlightOn = packet.headlight > 0;
   _lights.setHeadlights(_frontHeadlightOn);
@@ -152,13 +198,13 @@ void BleCommander::processLegacyCommand(char cmd) {
   
   switch (cmd) {
     case 'f': // Forward Full Speed
-      _driveLeft.setSpeed(255);
-      _driveRight.setSpeed(255);
+      _driveLeft.setSpeed(limitThrottle(255));
+      _driveRight.setSpeed(limitThrottle(255));
       break;
       
     case 'b': // Backward 25% Speed
-      _driveLeft.setSpeed(-64); 
-      _driveRight.setSpeed(-64);
+      _driveLeft.setSpeed(limitThrottle(-64));
+      _driveRight.setSpeed(limitThrottle(-64));
       break;
       
     case 's': // Stop
