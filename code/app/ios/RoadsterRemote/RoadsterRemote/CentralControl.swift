@@ -9,6 +9,10 @@ import SwiftUI
 import Combine
 import CoreBluetooth
 
+// Control packets go out continuously at this rate. The car stops its motors
+// if they stop arriving for 500 ms, so keep this well above 2 Hz.
+fileprivate let COMMAND_INTERVAL: TimeInterval = 1.0 / 20.0
+
 enum Gear {
     case park, reverse, drive
 }
@@ -38,17 +42,14 @@ public class CentralControl {
     }
     
     var throttle: Int16 = 0
-    var steering: Int16 = 0 {
-        didSet {
-            sendCommand()
-        }
-    }
+    var steering: Int16 = 0
     var headlight: Bool = false
     
     let bleController: BLEController
     let accelerometer: Accelerometer
     
     var subscribers: Set<AnyCancellable> = []
+    private var commandTimer: Timer?
     
     init() {
         self.bleController = BLEController()
@@ -106,6 +107,13 @@ public class CentralControl {
             .store(in: &subscribers)
 
         self.accelerometer.beginUpdates()
+
+        let timer = Timer(timeInterval: COMMAND_INTERVAL, repeats: true) { [weak self] _ in
+            self?.sendCommand()
+        }
+        // .common keeps it firing while a gesture is tracking
+        RunLoop.main.add(timer, forMode: .common)
+        commandTimer = timer
     }
     
     func startScan() {
@@ -125,16 +133,21 @@ public class CentralControl {
     }
     
     func sendCommand() {
+        guard isConnected else { return }
+
+        let cmdThrottle: Int16
         switch gear {
         case .park:
-            break
+            // Keep sending in Park: it's what stops the car, and headlights still work
+            cmdThrottle = 0
         case .reverse:
-            let cmd = BLECommand(throttle: -motorThrottle, steering: steering, headlight: headlight ? 1 : 0)
-            bleController.send(command: cmd)
+            cmdThrottle = -motorThrottle
         case .drive:
-            let cmd = BLECommand(throttle: motorThrottle, steering: steering, headlight: headlight ? 1 : 0)
-            bleController.send(command: cmd)
+            cmdThrottle = motorThrottle
         }
+
+        let cmd = BLECommand(throttle: cmdThrottle, steering: steering, headlight: headlight ? 1 : 0)
+        bleController.send(command: cmd)
     }
 
     // The throttle stick runs 0...100; the firmware expects motor PWM, 0...255

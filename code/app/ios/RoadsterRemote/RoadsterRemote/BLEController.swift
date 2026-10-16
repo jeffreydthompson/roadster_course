@@ -102,6 +102,8 @@ class BLEController: NSObject {
         }
     }
     private var wantsScan = false
+    // An acknowledged write is waiting for the car's response
+    private var commandWriteInFlight = false
     private var pruneTimer: Timer?
 
     override init() {
@@ -195,6 +197,7 @@ class BLEController: NSObject {
         peripheral = nil
         commandChar = nil
         subscribeChar = nil
+        commandWriteInFlight = false
         connectionState.send(state)
         onUsbPower.send(false)
     }
@@ -208,7 +211,19 @@ class BLEController: NSObject {
 
         let payload = command.payload
 
-        peripheral.writeValue(payload, for: commandChar, type: .withResponse)
+        if commandChar.properties.contains(.writeWithoutResponse) {
+            // Packets go out at 20 Hz and each one replaces the last, so if
+            // iOS's send buffer is full, skip this one rather than queue it
+            guard peripheral.canSendWriteWithoutResponse else { return }
+            peripheral.writeValue(payload, for: commandChar, type: .withoutResponse)
+        } else {
+            // Older firmware only accepts acknowledged writes. Those are slower
+            // than 20 Hz, so send only once the last one is acknowledged;
+            // queuing them would build up a growing delay.
+            guard !commandWriteInFlight else { return }
+            commandWriteInFlight = true
+            peripheral.writeValue(payload, for: commandChar, type: .withResponse)
+        }
     }
 }
 
@@ -305,6 +320,12 @@ extension BLEController: CBPeripheralDelegate {
                     peripheral.discoverCharacteristics([RX_UUID, TX_UUID], for: s)
                 }
             }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: (any Error)?) {
+        if characteristic.uuid == RX_UUID {
+            commandWriteInFlight = false
+        }
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: (any Error)?) {
