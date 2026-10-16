@@ -45,3 +45,5 @@ Other work in progress and known issues are tracked in [TODO.md](TODO.md).
 - Hardware and mechanical designs (`mechanical/`, `circuits/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 See [LICENSE](LICENSE) for details.
+
+The [Open Source Hardware logo](https://oshwa.org/resources/open-source-hardware-logo/) was designed by Macklin Chaffee and is used under a CC-SA license. Open Roadster is not OSHWA certified.
