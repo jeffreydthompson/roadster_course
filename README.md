@@ -2,7 +2,9 @@
 
 An open source remote control car you can build from scratch. The chassis, circuit board, firmware, and phone app are all here.
 
-![Open Roadster Blueprint](mechanical/open%20roadster%20blueprint.png)
+![Open Roadster](mechanical/open%20roadster.jpg)
+
+![Open Roadster Blueprint](mechanical/open%20roadster%20blueprint.jpg)
 
 ## What's inside
 

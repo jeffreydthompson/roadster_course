@@ -2,7 +2,7 @@
 
 The chassis, steering, wheels and body of the Open Roadster.
 
-![Open Roadster Blueprint](open%20roadster%20blueprint.png)
+![Open Roadster Blueprint](open%20roadster%20blueprint.jpg)
 
 ## What's here
 
@@ -15,7 +15,8 @@ mechanical/
 │   └── Purchased Parts/        # motors, servo, bearing, screws, PCB
 ├── stl/                        # ready-to-print STLs of the printed parts
 ├── roadster.blend              # Blender body model
-├── open roadster blueprint.png
+├── open roadster.jpg           # photo of the finished car
+├── open roadster blueprint.jpg
 └── blueprints/                 # front, back, side, top views
 ```
 
